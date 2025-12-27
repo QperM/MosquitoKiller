@@ -3,6 +3,8 @@ package com.example.mosquitokiller
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.view.MotionEvent
+import android.view.ScaleGestureDetector
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.Toast
@@ -25,6 +27,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var processedImageView: ImageView
     private lateinit var imageProcessor: ImageProcessor
     private lateinit var flashButton: Button
+
     private var camera: Camera? = null
     private var isFlashOn = false
 
@@ -41,13 +44,13 @@ class MainActivity : AppCompatActivity() {
         if (allPermissionsGranted()) {
             startCamera()
         } else {
-            ActivityCompat.requestPermissions(
-                this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
+            ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
         }
 
         cameraExecutor = Executors.newSingleThreadExecutor()
 
         flashButton.setOnClickListener { toggleFlash() }
+        setupZoomControls()
     }
 
     private fun startCamera() {
@@ -56,11 +59,9 @@ class MainActivity : AppCompatActivity() {
         cameraProviderFuture.addListener({
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
 
-            val preview = Preview.Builder()
-                .build()
-                .also {
-                    it.setSurfaceProvider(viewFinder.surfaceProvider)
-                }
+            val preview = Preview.Builder().build().also {
+                it.setSurfaceProvider(viewFinder.surfaceProvider)
+            }
 
             val imageAnalyzer = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
@@ -80,13 +81,30 @@ class MainActivity : AppCompatActivity() {
 
             try {
                 cameraProvider.unbindAll()
-                camera = cameraProvider.bindToLifecycle(
-                    this, cameraSelector, preview, imageAnalyzer)
-            } catch(exc: Exception) {
+                camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalyzer)
+            } catch (exc: Exception) {
                 // Handle exceptions
             }
 
         }, ContextCompat.getMainExecutor(this))
+    }
+
+    private fun setupZoomControls() {
+        // Pinch-to-zoom gesture
+        val scaleGestureDetector = ScaleGestureDetector(this, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            override fun onScale(detector: ScaleGestureDetector): Boolean {
+                val zoomState = camera?.cameraInfo?.zoomState?.value ?: return true
+                val currentZoomRatio = zoomState.zoomRatio
+                val newZoomRatio = currentZoomRatio * detector.scaleFactor
+                camera?.cameraControl?.setZoomRatio(newZoomRatio.coerceIn(zoomState.minZoomRatio, zoomState.maxZoomRatio))
+                return true
+            }
+        })
+
+        viewFinder.setOnTouchListener { _, event ->
+            scaleGestureDetector.onTouchEvent(event)
+            return@setOnTouchListener true
+        }
     }
 
     private fun toggleFlash() {
@@ -94,29 +112,22 @@ class MainActivity : AppCompatActivity() {
             if (it.cameraInfo.hasFlashUnit()) {
                 isFlashOn = !isFlashOn
                 it.cameraControl.enableTorch(isFlashOn)
-                flashButton.text = if (isFlashOn) "Flash Off" else "Flash On"
+                flashButton.text = if (isFlashOn) "关闭闪光灯" else "开启闪光灯"
             }
         }
     }
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
-        ContextCompat.checkSelfPermission(
-            baseContext, it) == PackageManager.PERMISSION_GRANTED
+        ContextCompat.checkSelfPermission(baseContext, it) == PackageManager.PERMISSION_GRANTED
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>, 
-        grantResults: IntArray
-    ) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQUEST_CODE_PERMISSIONS) {
             if (allPermissionsGranted()) {
                 startCamera()
             } else {
-                Toast.makeText(this, 
-                    "Permissions not granted by the user.",
-                    Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Permissions not granted by the user.", Toast.LENGTH_SHORT).show()
                 finish()
             }
         }

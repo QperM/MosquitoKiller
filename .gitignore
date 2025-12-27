@@ -1,4 +1,17 @@
-# Created by Gemini
+# Created and updated by Gemini
+
+# IDE files
+.idea/
+.project
+.settings
+*.iml
+*.ipr
+*.iws
+
+# Build files
+build/
+.gradle/
+local.properties
 
 # Built application files
 *.apk
@@ -13,27 +26,14 @@
 *.class
 
 # Generated files
-build/
 captures/
 .externalNativeBuild/
-
-# Local configuration files
-local.properties
-.idea/caches/
-.idea/libraries/
-.idea/modules.xml
-.idea/workspace.xml
-.idea/navEditor.xml
-.idea/assetWizardSettings.xml
-.gradle/
-.project/
-.settings/
 
 # Keystore files
 *.jks
 *.keystore
 
-# Google services
+# Google services (if you use them)
 google-services.json
 
 # Android Studio profiler files
@@ -43,12 +43,6 @@ google-services.json
 # Log files
 *.log
 
-# Misc
+# OS-specific files
 .DS_Store
-*.iml
-*.ipr
-*.iws
-/captures/
-/build/
-/.gradle/
-/local.properties
+Thumbs.db

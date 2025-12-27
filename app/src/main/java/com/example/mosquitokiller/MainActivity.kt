@@ -3,9 +3,11 @@ package com.example.mosquitokiller
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
@@ -22,6 +24,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var viewFinder: PreviewView
     private lateinit var processedImageView: ImageView
     private lateinit var imageProcessor: ImageProcessor
+    private lateinit var flashButton: Button
+    private var camera: Camera? = null
+    private var isFlashOn = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,6 +34,7 @@ class MainActivity : AppCompatActivity() {
 
         viewFinder = findViewById(R.id.viewFinder)
         processedImageView = findViewById(R.id.processedImageView)
+        flashButton = findViewById(R.id.flashButton)
         imageProcessor = ImageProcessor()
 
         // Request camera permissions
@@ -40,6 +46,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         cameraExecutor = Executors.newSingleThreadExecutor()
+
+        flashButton.setOnClickListener { toggleFlash() }
     }
 
     private fun startCamera() {
@@ -72,13 +80,23 @@ class MainActivity : AppCompatActivity() {
 
             try {
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(
+                camera = cameraProvider.bindToLifecycle(
                     this, cameraSelector, preview, imageAnalyzer)
             } catch(exc: Exception) {
                 // Handle exceptions
             }
 
         }, ContextCompat.getMainExecutor(this))
+    }
+
+    private fun toggleFlash() {
+        camera?.let {
+            if (it.cameraInfo.hasFlashUnit()) {
+                isFlashOn = !isFlashOn
+                it.cameraControl.enableTorch(isFlashOn)
+                flashButton.text = if (isFlashOn) "Flash Off" else "Flash On"
+            }
+        }
     }
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {

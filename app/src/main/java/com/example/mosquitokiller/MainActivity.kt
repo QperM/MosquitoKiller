@@ -5,7 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
-import android.widget.Button
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -26,7 +26,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var viewFinder: PreviewView
     private lateinit var processedImageView: ImageView
     private lateinit var imageProcessor: ImageProcessor
-    private lateinit var flashButton: Button
+    private lateinit var flashButton: ImageButton
 
     private var camera: Camera? = null
     private var isFlashOn = false
@@ -112,7 +112,11 @@ class MainActivity : AppCompatActivity() {
             if (it.cameraInfo.hasFlashUnit()) {
                 isFlashOn = !isFlashOn
                 it.cameraControl.enableTorch(isFlashOn)
-                flashButton.text = if (isFlashOn) "关闭闪光灯" else "开启闪光灯"
+                if (isFlashOn) {
+                    flashButton.setImageResource(R.drawable.ic_flash_on)
+                } else {
+                    flashButton.setImageResource(R.drawable.ic_flash_off)
+                }
             }
         }
     }

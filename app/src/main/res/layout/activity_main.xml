@@ -19,12 +19,15 @@
         android:scaleType="fitCenter"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <Button
+    <ImageButton
         android:id="@+id/flashButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="闪光灯"
-        android:layout_marginBottom="50dp"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:src="@drawable/ic_flash_off"
+        android:scaleType="fitCenter" 
+        android:padding="30dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:layout_marginBottom="20dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

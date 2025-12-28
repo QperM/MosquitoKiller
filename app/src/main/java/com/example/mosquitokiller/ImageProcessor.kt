@@ -13,8 +13,8 @@ import kotlin.experimental.and
 
 class ImageProcessor {
 
-    // You can adjust this threshold to change sensitivity. Lower value means only darker spots are highlighted.
-    private val DARKNESS_THRESHOLD = 80
+    // You can adjust this threshold to change sensitivity. Higher value means more gray spots are highlighted.
+    private val DARKNESS_THRESHOLD = 120
 
     fun processImage(image: ImageProxy, rotationDegrees: Int): Bitmap {
         // 1. Convert YUV to a base Bitmap

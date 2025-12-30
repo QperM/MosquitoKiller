@@ -1,16 +1,21 @@
 package com.example.mosquitokiller
 
 import android.Manifest
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
+import android.view.View
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -27,6 +32,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var processedImageView: ImageView
     private lateinit var imageProcessor: ImageProcessor
     private lateinit var flashButton: ImageButton
+    private lateinit var focusRing: View
 
     private var camera: Camera? = null
     private var isFlashOn = false
@@ -38,9 +44,9 @@ class MainActivity : AppCompatActivity() {
         viewFinder = findViewById(R.id.viewFinder)
         processedImageView = findViewById(R.id.processedImageView)
         flashButton = findViewById(R.id.flashButton)
+        focusRing = findViewById(R.id.focusRing)
         imageProcessor = ImageProcessor()
 
-        // Request camera permissions
         if (allPermissionsGranted()) {
             startCamera()
         } else {
@@ -50,7 +56,7 @@ class MainActivity : AppCompatActivity() {
         cameraExecutor = Executors.newSingleThreadExecutor()
 
         flashButton.setOnClickListener { toggleFlash() }
-        setupZoomControls()
+        setupTouchControls()
     }
 
     private fun startCamera() {
@@ -67,14 +73,14 @@ class MainActivity : AppCompatActivity() {
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .build()
                 .also {
-                    it.setAnalyzer(cameraExecutor, ImageAnalysis.Analyzer { image ->
+                    it.setAnalyzer(cameraExecutor) { image ->
                         val rotationDegrees = image.imageInfo.rotationDegrees
                         val processedBitmap = imageProcessor.processImage(image, rotationDegrees)
                         runOnUiThread {
                             processedImageView.setImageBitmap(processedBitmap)
                         }
                         image.close()
-                    })
+                    }
                 }
 
             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
@@ -89,8 +95,7 @@ class MainActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
-    private fun setupZoomControls() {
-        // Pinch-to-zoom gesture
+    private fun setupTouchControls() {
         val scaleGestureDetector = ScaleGestureDetector(this, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
             override fun onScale(detector: ScaleGestureDetector): Boolean {
                 val zoomState = camera?.cameraInfo?.zoomState?.value ?: return true
@@ -101,10 +106,53 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
+        val gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            override fun onSingleTapUp(e: MotionEvent): Boolean {
+                showFocusRing(e.x, e.y)
+                val factory = viewFinder.meteringPointFactory
+                val point = factory.createPoint(e.x, e.y)
+                val action = FocusMeteringAction.Builder(point).build()
+                camera?.cameraControl?.startFocusAndMetering(action)
+                return true
+            }
+        })
+
         viewFinder.setOnTouchListener { _, event ->
-            scaleGestureDetector.onTouchEvent(event)
-            return@setOnTouchListener true
+            val didConsumeScale = scaleGestureDetector.onTouchEvent(event)
+            val didConsumeTap = gestureDetector.onTouchEvent(event)
+            return@setOnTouchListener didConsumeScale || didConsumeTap
         }
+    }
+
+    private fun showFocusRing(x: Float, y: Float) {
+        focusRing.x = x - focusRing.width / 2
+        focusRing.y = y - focusRing.height / 2
+        focusRing.visibility = View.VISIBLE
+        focusRing.alpha = 1f
+
+        focusRing.animate()
+            .scaleX(1.3f)
+            .scaleY(1.3f)
+            .setDuration(250)
+            .withEndAction {
+                focusRing.animate()
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(250)
+                    .withEndAction {
+                        focusRing.animate()
+                            .alpha(0f)
+                            .setDuration(500)
+                            .setListener(object : AnimatorListenerAdapter() {
+                                override fun onAnimationEnd(animation: Animator) {
+                                    focusRing.visibility = View.GONE
+                                }
+                            })
+                            .start()
+                    }
+                    .start()
+            }
+            .start()
     }
 
     private fun toggleFlash() {

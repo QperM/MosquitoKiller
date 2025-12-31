@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
         processedImageView = findViewById(R.id.processedImageView)
         flashButton = findViewById(R.id.flashButton)
         focusRing = findViewById(R.id.focusRing)
-        imageProcessor = ImageProcessor()
+        imageProcessor = ImageProcessor(applicationContext)
 
         if (allPermissionsGranted()) {
             startCamera()
